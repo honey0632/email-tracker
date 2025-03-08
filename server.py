@@ -1,16 +1,29 @@
 from flask import Flask, request, send_file
 import datetime
 import os
+import requests
 
 app = Flask(__name__)
 
 # Log file path
 LOG_FILE = "email_opens.log"
 
+def get_location(ip):
+    """Fetch geolocation data for the given IP"""
+    try:
+        response = requests.get(f"https://ipinfo.io/{ip}/json")
+        data = response.json()
+        return f"{data.get('city', 'Unknown')}, {data.get('country', 'Unknown')} (ISP: {data.get('org', 'N/A')})"
+    except:
+        return "Location not available"
+
 @app.route("/track/<email>")
 def track(email):
-    """Log the email open event when the tracking pixel is loaded"""
-    log_entry = f"{datetime.datetime.now()} - {email} opened the email"
+    """Log email open event with IP and location"""
+    ip = request.remote_addr  # Get IP Address
+    location = get_location(ip)  # Get geolocation
+
+    log_entry = f"{datetime.datetime.now()} - {email} opened the email | IP: {ip} | Location: {location}"
     
     # Save log to a file
     with open(LOG_FILE, "a") as file:
